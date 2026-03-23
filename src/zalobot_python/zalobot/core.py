@@ -2,7 +2,6 @@ import secrets
 from typing import Annotated, Protocol
 
 from ..types import (
-    ZaloAPIResponse,
     ErrorResponse,
     ZaloAPIError,
     BotInfo,  
