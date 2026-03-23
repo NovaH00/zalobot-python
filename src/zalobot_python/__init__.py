@@ -1,4 +1,4 @@
-from .zalobot import ZaloBot, WebhookHandler
+from .zalobot import ZaloBot, AsyncWebhookHandler 
 from .models import (
     SuccessfulResponse,
     ErrorResponse,
@@ -19,7 +19,7 @@ __all__ = [
     "ErrorResponse",
     "ZaloAPIResponse",
     "ZaloBot",
-    "WebhookHandler",
+    "AsyncWebhookHandler",
     "BotInfo",
     "WebhookInfo",
     "MessageInfo",

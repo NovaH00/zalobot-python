@@ -1,6 +1,6 @@
 [project]
 name = "zalobot-python"
-version = "0.1.3"
+version = "0.1.4"
 description = "Python SDK for the Zalo Bot API"
 readme = "README.md"
 authors = [
