@@ -70,13 +70,13 @@ class ZaloBot[S: BotStates = UnconfiguredWebhook]:
 
     async def setWebhook(
         self: ZaloBot[UnconfiguredWebhook],
-        url: str,
+        webhook_url: str,
         secret_token: str,
     ) -> WebhookInfo:
         url = f"{self._base_url}/setWebhook"
         
         payload = {
-            "url": url,
+            "url": webhook_url,
             "secret_token": secret_token
         }
 
