@@ -1,9 +1,8 @@
-from typing import Any, Literal, Protocol
-import httpx
+import secrets
+from typing import Annotated, Protocol
 
-from .models import (
+from ..types import (
     ZaloAPIResponse,
-    SuccessfulResponse,
     ErrorResponse,
     ZaloAPIError,
     BotInfo,  
@@ -11,50 +10,46 @@ from .models import (
     MessageInfo,
     Event
 )
-from .config import ZaloAPIConfig
+from ..config import ZaloAPIConfig
+from .http import fetch
+from .context import Context
 
-async def fetch[T](
-    url: str,
-    *,
-    method: Literal["GET", "POST"] = "GET",
-    body: dict[str, Any] | None = None,
-) -> ZaloAPIResponse[T]:
-    async with httpx.AsyncClient() as client:
-
-        if method == "GET":
-            response = await client.get(url)
-
-        elif method == "POST":
-            response = await client.post(url, json=body)
-
-        response_json = response.json()
-
-        if response_json.get("ok"):
-            return SuccessfulResponse(**response_json)
-
-        return ErrorResponse(**response_json)
+class UnconfiguredWebhook: 
+    """Represents the state of the bot where webhook have not yet configured"""
+class ConfiguredWebhook:
+    """Represents the state of the bot where webhook is configured"""
+type BotStates = Annotated[
+    UnconfiguredWebhook | ConfiguredWebhook,
+    "Represents the states of the bot"
+]
 
 class AsyncWebhookHandler(Protocol):
-    async def __call__(self, update_event: Event, bot: ZaloBot) -> None: ...
+    async def __call__(self, ctx: Context) -> None: ...
 
-class ZaloBot:
-    def __init__(self, BOT_TOKEN: str):
+class ZaloBot[S: BotStates = UnconfiguredWebhook]:
+    def __init__(
+        self,
+        BOT_TOKEN: str,
+        *,
+        _secret_token: str | None = None
+    ):
         self._BOT_TOKEN: str = BOT_TOKEN
         self._base_url: str = f"{ZaloAPIConfig.BASE_URL}/bot{BOT_TOKEN}"
         self._webhook_handlers: list[AsyncWebhookHandler] = [] 
+        if _secret_token is not None:
+            self._secret_token: str = _secret_token
 
     async def getMe(self) -> BotInfo:
         url = f"{self._base_url}/getMe" 
         
-        res: ZaloAPIResponse[BotInfo] = await fetch(url)
-        
+        res = await fetch(url, result_schema=BotInfo)
+
         if isinstance(res, ErrorResponse):
             raise ZaloAPIError(
                 res.error_code,
                 res.description
             ) 
         
-       
         return res.result
                       
     async def getUpdates(self, timeout: int = 30) -> Event:
@@ -64,7 +59,7 @@ class ZaloBot:
             "timeout": timeout
         }
 
-        res: ZaloAPIResponse[Event] = await fetch(url, method="POST", body=payload)
+        res = await fetch(url, result_schema=Event, method="POST", body=payload, timeout=timeout)
 
         if isinstance(res, ErrorResponse):
             raise ZaloAPIError(
@@ -75,7 +70,7 @@ class ZaloBot:
         return res.result
 
     async def setWebhook(
-        self,
+        self: ZaloBot[UnconfiguredWebhook],
         url: str,
         secret_token: str,
     ) -> WebhookInfo:
@@ -86,7 +81,7 @@ class ZaloBot:
             "secret_token": secret_token
         }
 
-        res: ZaloAPIResponse[WebhookInfo] = await fetch(url, method="POST", body=payload)
+        res = await fetch(url, result_schema=WebhookInfo, method="POST", body=payload)
 
         if isinstance(res, ErrorResponse):
             raise ZaloAPIError(
@@ -99,7 +94,7 @@ class ZaloBot:
     async def deleteWebhook(self) -> WebhookInfo:
         url = f"{self._base_url}/deleteWebhook"
         
-        res: ZaloAPIResponse[WebhookInfo] = await fetch(url)
+        res = await fetch(url, result_schema=WebhookInfo)
 
         if isinstance(res, ErrorResponse):
             raise ZaloAPIError(
@@ -112,7 +107,7 @@ class ZaloBot:
     async def getWebhookInfo(self) -> WebhookInfo:
         url = f"{self._base_url}/getWebhookInfo"
         
-        res: ZaloAPIResponse[WebhookInfo] = await fetch(url)
+        res = await fetch(url, result_schema=WebhookInfo)
 
         if isinstance(res, ErrorResponse):
             raise ZaloAPIError(
@@ -122,15 +117,6 @@ class ZaloBot:
 
         return res.result
     
-    def on_webhook_update(self, handler: AsyncWebhookHandler) -> None:
-        """Registers a handler to handle on webhook event update"""
-        self._webhook_handlers.append(handler)
-
-    async def dispatch_webhook_handlers(self, update_event: Event) -> None:
-        """Run all handlers given a webhook event"""
-        for handler in self._webhook_handlers:
-            await handler(update_event, self)
-
     async def sendMessage(self, chat_id: str, text: str) -> MessageInfo:
         url = f"{self._base_url}/sendMessage"
         
@@ -138,7 +124,7 @@ class ZaloBot:
             "chat_id": chat_id,
             "text": text
         }
-        res: ZaloAPIResponse[MessageInfo] = await fetch(url, method="POST", body=payload)
+        res = await fetch(url, result_schema=MessageInfo, method="POST", body=payload)
 
         if isinstance(res, ErrorResponse):
             raise ZaloAPIError(
@@ -157,3 +143,31 @@ class ZaloBot:
 
     async def sendChatAction(self, chat_id: str, action: str) -> None:
         raise NotImplementedError()
+
+    async def configure_webhook(
+        self: ZaloBot[UnconfiguredWebhook],
+        url: str
+    ) -> ZaloBot[ConfiguredWebhook]:
+        
+        secret_token = secrets.token_urlsafe(192)
+        _ = await self.setWebhook(url, secret_token)
+        
+        return ZaloBot(self._BOT_TOKEN, _secret_token = secret_token)
+    
+    def get_secret_token(self: ZaloBot[ConfiguredWebhook]):
+        return self._secret_token
+
+    def add_webhook_handler(
+        self: ZaloBot[ConfiguredWebhook],
+        handler: AsyncWebhookHandler
+    ) -> None:
+        """Registers a handler to handle on webhook event update"""
+        self._webhook_handlers.append(handler)
+
+    async def dispatch_webhook_handlers(
+        self: ZaloBot[ConfiguredWebhook],
+        update_event: Event
+    ) -> None:
+        """Run all handlers given a webhook event"""
+        for handler in self._webhook_handlers:
+            await handler(Context(_update=update_event, _bot=self))
