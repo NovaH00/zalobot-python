@@ -34,14 +34,14 @@ async def fetch[T](
 
         return ErrorResponse(**response_json)
 
-class WebhookHandler(Protocol):
+class AsyncWebhookHandler(Protocol):
     async def __call__(self, update_event: Event, bot: ZaloBot) -> None: ...
 
 class ZaloBot:
     def __init__(self, BOT_TOKEN: str):
         self._BOT_TOKEN: str = BOT_TOKEN
         self._base_url: str = f"{ZaloAPIConfig.BASE_URL}/bot{BOT_TOKEN}"
-        self._webhook_handlers: list[WebhookHandler] = [] 
+        self._webhook_handlers: list[AsyncWebhookHandler] = [] 
 
     async def getMe(self) -> BotInfo:
         url = f"{self._base_url}/getMe" 
@@ -122,7 +122,7 @@ class ZaloBot:
 
         return res.result
     
-    def on_webhook_update(self, handler: WebhookHandler) -> None:
+    def on_webhook_update(self, handler: AsyncWebhookHandler) -> None:
         """Registers a handler to handle on webhook event update"""
         self._webhook_handlers.append(handler)
 
