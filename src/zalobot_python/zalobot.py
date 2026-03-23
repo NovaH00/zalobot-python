@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Any, Literal, Protocol
 import httpx
 
 from .models import (
@@ -34,11 +34,15 @@ async def fetch[T](
 
         return ErrorResponse(**response_json)
 
+class WebhookHandler(Protocol):
+    async def __call__(self, update_event: Event, bot: ZaloBot) -> None: ...
+
 class ZaloBot:
     def __init__(self, BOT_TOKEN: str):
         self._BOT_TOKEN: str = BOT_TOKEN
         self._base_url: str = f"{ZaloAPIConfig.BASE_URL}/bot{BOT_TOKEN}"
-    
+        self._webhook_handlers: list[WebhookHandler] = [] 
+
     async def getMe(self) -> BotInfo:
         url = f"{self._base_url}/getMe" 
         
@@ -53,7 +57,6 @@ class ZaloBot:
        
         return res.result
                       
-                
     async def getUpdates(self, timeout: int = 30) -> Event:
         url = f"{self._base_url}/getUpdates"
         
@@ -71,7 +74,11 @@ class ZaloBot:
 
         return res.result
 
-    async def setWebhook(self, url: str, secret_token: str) -> WebhookInfo:
+    async def setWebhook(
+        self,
+        url: str,
+        secret_token: str,
+    ) -> WebhookInfo:
         url = f"{self._base_url}/setWebhook"
         
         payload = {
@@ -115,6 +122,15 @@ class ZaloBot:
 
         return res.result
     
+    def on_webhook_update(self, handler: WebhookHandler) -> None:
+        """Registers a handler to handle on webhook event update"""
+        self._webhook_handlers.append(handler)
+
+    async def dispatch_webhook_handlers(self, update_event: Event) -> None:
+        """Run all handlers given a webhook event"""
+        for handler in self._webhook_handlers:
+            await handler(update_event, self)
+
     async def sendMessage(self, chat_id: str, text: str) -> MessageInfo:
         url = f"{self._base_url}/sendMessage"
         
