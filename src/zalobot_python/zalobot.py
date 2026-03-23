@@ -2,7 +2,7 @@ from typing import Any, Literal
 import httpx
 
 from .models import (
-    APIResponse,
+    ZaloAPIResponse,
     SuccessfulResponse,
     ErrorResponse,
     ZaloAPIError,
@@ -13,13 +13,12 @@ from .models import (
 )
 from .config import ZaloAPIConfig
 
-
 async def fetch[T](
     url: str,
     *,
     method: Literal["GET", "POST"] = "GET",
     body: dict[str, Any] | None = None,
-) -> APIResponse[T]:
+) -> ZaloAPIResponse[T]:
     async with httpx.AsyncClient() as client:
 
         if method == "GET":
@@ -43,7 +42,7 @@ class ZaloBot:
     async def getMe(self) -> BotInfo:
         url = f"{self._base_url}/getMe" 
         
-        res: APIResponse[BotInfo] = await fetch(url)
+        res: ZaloAPIResponse[BotInfo] = await fetch(url)
         
         if isinstance(res, ErrorResponse):
             raise ZaloAPIError(
@@ -62,7 +61,7 @@ class ZaloBot:
             "timeout": timeout
         }
 
-        res: APIResponse[Event] = await fetch(url, method="POST", body=payload)
+        res: ZaloAPIResponse[Event] = await fetch(url, method="POST", body=payload)
 
         if isinstance(res, ErrorResponse):
             raise ZaloAPIError(
@@ -80,7 +79,7 @@ class ZaloBot:
             "secret_token": secret_token
         }
 
-        res: APIResponse[WebhookInfo] = await fetch(url, method="POST", body=payload)
+        res: ZaloAPIResponse[WebhookInfo] = await fetch(url, method="POST", body=payload)
 
         if isinstance(res, ErrorResponse):
             raise ZaloAPIError(
@@ -93,7 +92,7 @@ class ZaloBot:
     async def deleteWebhook(self) -> WebhookInfo:
         url = f"{self._base_url}/deleteWebhook"
         
-        res: APIResponse[WebhookInfo] = await fetch(url)
+        res: ZaloAPIResponse[WebhookInfo] = await fetch(url)
 
         if isinstance(res, ErrorResponse):
             raise ZaloAPIError(
@@ -106,7 +105,7 @@ class ZaloBot:
     async def getWebhookInfo(self) -> WebhookInfo:
         url = f"{self._base_url}/getWebhookInfo"
         
-        res: APIResponse[WebhookInfo] = await fetch(url)
+        res: ZaloAPIResponse[WebhookInfo] = await fetch(url)
 
         if isinstance(res, ErrorResponse):
             raise ZaloAPIError(
@@ -123,7 +122,7 @@ class ZaloBot:
             "chat_id": chat_id,
             "text": text
         }
-        res: APIResponse[MessageInfo] = await fetch(url, method="POST", body=payload)
+        res: ZaloAPIResponse[MessageInfo] = await fetch(url, method="POST", body=payload)
 
         if isinstance(res, ErrorResponse):
             raise ZaloAPIError(

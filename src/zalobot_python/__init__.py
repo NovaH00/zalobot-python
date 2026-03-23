@@ -1,5 +1,8 @@
 from .zalobot import ZaloBot
 from .models import (
+    SuccessfulResponse,
+    ErrorResponse,
+    ZaloAPIResponse,
     BotInfo,
     WebhookInfo,
     MessageInfo,
@@ -12,6 +15,9 @@ from .models import (
 )
 
 __all__ = [
+    "SuccessfulResponse",
+    "ErrorResponse",
+    "ZaloAPIResponse",
     "ZaloBot",
     "BotInfo",
     "WebhookInfo",
