@@ -1,7 +1,8 @@
 [English](README.md)
+
 # ZaloBot Python SDK (Đang phát triển)
 
-SDK Python hiện đại, fully-typed và asynchronous cho Zalo Bot API. 
+SDK Python hiện đại, fully-typed và asynchronous cho Zalo Bot API.
 
 ## Tính năng
 
@@ -14,120 +15,57 @@ SDK Python hiện đại, fully-typed và asynchronous cho Zalo Bot API.
 
 ## Cài đặt
 
-Bạn có thể cài đặt SDK bằng trình quản lý gói ưa thích của mình:
-
 **Sử dụng uv:**
-~~~bash
-uv add zalobot_python
-~~~
+```bash
+uv add zalobot-python
+```
 
 **Sử dụng pip:**
-~~~bash
-pip install zalobot_python
-~~~
+```bash
+pip install zalobot-python
+```
 
-## Các API hỗ trợ
+## API Hỗ Trợ
 
-Các phương thức được viết theo định dạng `camelCase` sẽ thực hiện các lệnh gọi API tương đương đến các endpoint của Zalo:
+| Phương thức | Trạng thái |
+|-------------|------------|
+| `getMe()` | ✅ |
+| `getUpdates()` | ✅ |
+| `setWebhook()` | ✅ |
+| `deleteWebhook()` | ✅ |
+| `getWebhookInfo()` | ✅ |
+| `sendMessage()` | ✅ |
+| `sendPhoto()` | Theo kế hoạch |
+| `sendSticker()` | Theo kế hoạch |
+| `sendChatAction()` | Theo kế hoạch |
 
-| Phương thức | Endpoint Zalo | Trạng thái |
-|--------|---------------|--------|
-| `getMe()` | `/getMe` | Đã hoàn thiện |
-| `getUpdates()` | `/getUpdates` | Đã hoàn thiện |
-| `setWebhook()` | `/setWebhook` | Đã hoàn thiện |
-| `deleteWebhook()` | `/deleteWebhook` | Đã hoàn thiện |
-| `getWebhookInfo()` | `/getWebhookInfo` | Đã hoàn thiện |
-| `sendMessage()` | `/sendMessage` | Đã hoàn thiện |
-| `sendPhoto()` | `/sendPhoto` | Theo kế hoạch |
-| `sendSticker()` | `/sendSticker` | Theo kế hoạch |
-| `sendChatAction()` | `/sendChatAction` | Theo kế hoạch |
+## Bắt Đầu Nhanh
 
-## Cách sử dụng
-
-### Sử dụng cơ bản
-
-Cách đơn giản nhất để sử dụng bot là khởi tạo bot với token của bạn và gọi các phương thức endpoint có sẵn.
-
-~~~python
+```python
 import asyncio
-from zalobot_python import ZaloBot, BotInfo 
+from zalobot_python import ZaloBot
 
-bot = ZaloBot(BOT_TOKEN="<BOT_TOKEN>")
-
-async def main():
-    bot_info: BotInfo = await bot.getMe()
-    
-    print(f"ID Bot: {bot_info.id}")
-    print(f"Tên Bot: {bot_info.display_name}")
-
-if __name__ == "__main__":
-    asyncio.run(main())
-~~~
-
-### Sử dụng Webhook
-
-Mặc dù về mặt kỹ thuật, bạn có thể liên tục gọi `.getUpdates()` (polling) để nhận các sự kiện mới, nhưng sử dụng webhook sẽ hiệu quả hơn nhiều. SDK cung cấp sẵn các cơ chế tích hợp để dễ dàng cấu hình và xử lý webhook.
-
-~~~python
-from zalobot_python import ZaloBot, Context, AsyncWebhookHandler, ZaloAPIResponse, Event 
-
-# 1. Khởi tạo bot tiêu chuẩn
-normal_bot = ZaloBot("<BOT_TOKEN>")
-
-# 2. Định nghĩa các hàm xử lý (handler) cho webhook
-async def echo(ctx: Context):
-    message_info = await ctx.reply(f"Bạn đã gửi: {ctx.text}")
-    print("ID tin nhắn đã gửi:", message_info.message_id)
-
-async def log_event(ctx: Context):
-    if ctx.is_text:
-        print("ID Cuộc trò chuyện:", ctx.chat_id)
-        print("Tin nhắn:", ctx.text)
+bot = ZaloBot("<BOT_TOKEN>")
 
 async def main():
-    # Chuyển đổi bot tiêu chuẩn thành bot hỗ trợ webhook
-    # (Tất cả các phương thức endpoint có sẵn trước đó vẫn sử dụng được bình thường)
-    webhook_bot = await normal_bot.configure_webhook("https://your-domain.com/webhook")
-    
-    # Lấy secret token được tạo tự động. 
-    # Sử dụng token này để xác thực header X-Bot-Api-Secret-Token trong các request gửi đến.
-    secret_token = webhook_bot.get_secret_token() 
-    
-    # Đăng ký các hàm xử lý
-    webhook_bot.add_webhook_handler(echo)
-    webhook_bot.add_webhook_handler(log_event)
+    bot_info = await bot.getMe()
+    print(f"Bot: {bot_info.display_name}")
 
-    # Lưu ý: Luồng xử lý request bên dưới cần được triển khai 
-    # bên trong endpoint của web framework bạn đang dùng (VD: FastAPI, Flask).
-~~~
+asyncio.run(main())
+```
 
-#### Luồng xử lý yêu cầu (Dành cho Web Framework)
+## Tài Liệu
 
-Khi triển khai route thực tế trong web framework, hãy làm theo các bước sau để xử lý các sự kiện gửi đến:
+Để biết hướng dẫn chi tiết, API reference và ví dụ, xem tài liệu đầy đủ: **[Documentation](docs/DOCS-vi.md)**
 
-1. **Phân tích cú pháp payload:** Chuyển đổi phần thân JSON gửi đến thành đối tượng `ZaloAPIResponse[Event]`. Payload thực tế nằm trong trường `result`.
-~~~python
-parsed: ZaloAPIResponse[Event] = ZaloAPIResponse.model_validate(request.json())
-~~~
+Các nội dung trong tài liệu:
+- API reference chi tiết với tất cả phương thức và tham số
+- So sánh Webhook vs Polling
+- Quản lý trạng thái type-safe
+- Xử lý lỗi
+- Các mẫu sử dụng nâng cao
+- Ví dụ hoàn chỉnh (Echo Bot, Command Handler, Multi-Handler Setup)
 
-2. **Trích xuất sự kiện (event):**
-~~~python
-event = parsed.result
-~~~
+## License
 
-3. **Điều phối sự kiện:** Truyền sự kiện tới các hàm xử lý đã đăng ký của bạn.
-~~~python
-await webhook_bot.dispatch_webhook_handlers(event)
-~~~
-
-## Lưu ý về Kiến trúc: Quản lý trạng thái Webhook
-
-Để đảm bảo an toàn kiểu dữ liệu (type safety) một cách nghiêm ngặt, lớp `ZaloBot` là một lớp generic (generic class) phụ thuộc vào hai trạng thái cụ thể:
-
-| Trạng thái | Mô tả |
-|-------|-------------|
-| `UnconfiguredWebhook` | Trạng thái mặc định khi `ZaloBot` được khởi tạo. |
-| `ConfiguredWebhook` | Trạng thái được trả về sau khi gọi phương thức `.configure_webhook()`. |
-
-**Tại sao điều này lại quan trọng?**
-Tất cả các phương thức hỗ trợ được viết dưới dạng `snake_case` (ví dụ như `add_webhook_handler`) đều dành riêng cho các hoạt động của webhook. Nhờ thiết kế trạng thái generic này, các công cụ phân tích tĩnh (như Pyright hay MyPy) sẽ báo lỗi nếu bạn cố gọi một phương thức `snake_case` trên một bot chưa được cấu hình (`ZaloBot[UnconfiguredWebhook]`). Các phương thức này chỉ được hiển thị và hợp lệ trên các thực thể của `ZaloBot[ConfiguredWebhook]`.
+MIT License

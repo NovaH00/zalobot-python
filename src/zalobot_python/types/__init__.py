@@ -1,7 +1,13 @@
+"""
+Types module containing all Pydantic models and type definitions for the Zalo API.
+
+This module provides type-safe models for API requests, responses, and entities.
+"""
+
 from .responses import (
     ZaloAPIResponse,
     SuccessfulResponse,
-    ErrorResponse, 
+    ErrorResponse,
     Result
 )
 from .entities import (

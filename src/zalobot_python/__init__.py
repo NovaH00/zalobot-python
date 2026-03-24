@@ -1,3 +1,10 @@
+"""
+ZaloBot Python SDK - A modern, fully-typed asynchronous SDK for Zalo Bot API.
+
+This package provides an ergonomic and developer-friendly interface for building
+Zalo chatbots with complete type safety and async support.
+"""
+
 from .zalobot import (
     ZaloBot,
     BotStates,

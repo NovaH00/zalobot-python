@@ -1,3 +1,5 @@
+"""HTTP utility module for making async requests to the Zalo API."""
+
 from typing import Literal, Any
 
 import httpx
@@ -12,7 +14,32 @@ async def fetch[T: Result](
     body: dict[str, Any] | None = None,
     timeout: int = 30,
 ) -> ZaloAPIResponse[T]:
-    """Ultility function to fetch the data from the Zalo API asynchronously"""
+    """Utility function to fetch data from the Zalo API asynchronously.
+    
+    This function handles HTTP communication with the Zalo Bot API, automatically
+    parsing responses into the appropriate schema types.
+    
+    Args:
+        url: The API endpoint URL to request.
+        result_schema: The Pydantic model class to validate the result against.
+        method: HTTP method to use ("GET" or "POST"). Defaults to "GET".
+        body: Optional JSON body for POST requests.
+        timeout: Request timeout in seconds. Defaults to 30.
+    
+    Returns:
+        ZaloAPIResponse[T]: Either a SuccessfulResponse with validated result
+                           or an ErrorResponse with error details.
+    
+    Example:
+        ```python
+        response = await fetch(
+            "https://bot-api.zaloplatforms.com/botTOKEN/getMe",
+            result_schema=BotInfo
+        )
+        if isinstance(response, SuccessfulResponse):
+            bot_info = response.result
+        ```
+    """
     async with httpx.AsyncClient(timeout=timeout) as client:
 
         if method == "GET":
